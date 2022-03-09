@@ -30,8 +30,7 @@ public class Mal {
         var mockLoggerFactory = new NullLoggerFactory();
         var mockServerApplicationHost = new Mock<IServerApplicationHost>();
         var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _malApiCalls = new MalApiCalls(factory, mockLoggerFactory, mockServerApplicationHost.Object, mockHttpContextAccessor.Object);
-        _malApiCalls.UserConfig = GetUserConfig.ManuallyGetUserConfig();
+        _malApiCalls = new MalApiCalls(factory, mockLoggerFactory, mockServerApplicationHost.Object, mockHttpContextAccessor.Object, GetUserConfig.ManuallyGetUserConfig());
     }
 
     [Test]
@@ -59,7 +58,8 @@ public class Mal {
         var result = await _malApiCalls.GetAnime(7791);
         Assert.IsNotNull(result);
     }
-
+    
+    [Ignore("Destructive")]
     [Test]
     public async Task TestUpdateAnimeStatus() {
         var makeChange = await _malApiCalls.UpdateAnimeStatus(339, 1, Status.Completed, true);
