@@ -1,6 +1,7 @@
 using System.Net.Http;
 using System.Threading.Tasks;
 using jellyfin_ani_sync.Api.Anilist;
+using jellyfin_ani_sync.Models;
 using MediaBrowser.Controller;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -31,11 +32,39 @@ public class AniList {
         
         Assert.IsNotNull(result[0].Id);
     }
+    
+    [Test]
+    public async Task TestGenericLongTitleSearch() {
+        var result = await _aniListApiCalls.SearchAnime("Kono Subarashii Sekai ni Shukufuku wo! 2: Kono Subarashii Geijutsu ni Shukufuku wo!");
+        
+        Assert.IsNotNull(result[0].Id);
+    }
 
     [Test]
     public async Task TestGettingCurrentUser() {
         var result = await _aniListApiCalls.GetCurrentUser();
         
         Assert.IsNotNull(result);
+    }
+
+    [Test]
+    public async Task TestUpdatingAnime() {
+        var result = await _aniListApiCalls.UpdateAnime(5680, AniListSearch.MediaListStatus.Current, 1);
+        
+        Assert.IsTrue(result);
+    }
+
+    [Test]
+    public async Task TestGenericSearchPaging() {
+        var result = await _aniListApiCalls.SearchAnime("life");
+        
+        Assert.IsTrue(result.Count > AniListApiCalls.PageSize);
+    }
+
+    [Test]
+    public async Task TestGetAnime() {
+        var result = await _aniListApiCalls.GetAnime(5680);
+
+        Assert.IsNotNull(result.Id);
     }
 }
