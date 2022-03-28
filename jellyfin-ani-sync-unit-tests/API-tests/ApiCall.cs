@@ -1,11 +1,14 @@
 using System;
+using System.Linq;
 using System.Net.Http;
 using System.Threading.Tasks;
 using jellyfin_ani_sync.Api;
 using jellyfin_ani_sync.Api.Anilist;
+using jellyfin_ani_sync.Api.Kitsu;
 using jellyfin_ani_sync.Configuration;
 using jellyfin_ani_sync.Helpers;
 using jellyfin_ani_sync.Models;
+using jellyfin_ani_sync.Models.Mal;
 using MediaBrowser.Controller;
 using Microsoft.AspNetCore.Http;
 using Microsoft.Extensions.Logging.Abstractions;
@@ -17,6 +20,7 @@ namespace jellyfin_ani_sync_unit_tests.API_tests;
 public class ApiCall {
     private ApiCallHelpers _aniListApiCallHelpers;
     private ApiCallHelpers _malApiCallHelpers;
+    private ApiCallHelpers _kitsuApiCallHelpers;
 
     [SetUp]
     public void Setup() {
@@ -33,6 +37,9 @@ public class ApiCall {
 
         var aniListApiCalls = new AniListApiCalls(factory, mockLoggerFactory, mockServerApplicationHost.Object, mockHttpContextAccessor.Object, GetUserConfig.ManuallyGetUserConfig());
         _aniListApiCallHelpers = new ApiCallHelpers(aniListApiCalls: aniListApiCalls);
+        
+        var kitsuApiCalls = new KitsuApiCalls(factory, mockLoggerFactory, mockServerApplicationHost.Object, mockHttpContextAccessor.Object, GetUserConfig.ManuallyGetUserConfig());
+        _kitsuApiCallHelpers = new ApiCallHelpers(kitsuApiCalls: kitsuApiCalls);
     }
 
     [Test]
@@ -46,6 +53,13 @@ public class ApiCall {
     public async Task TestAniListGenericSearch() {
         var result = await _aniListApiCallHelpers.SearchAnime("K-ON!");
 
+        Assert.IsNotEmpty(result);
+    }
+
+    [Test]
+    public async Task TestKitsuGenericSearch() {
+        var result = await _kitsuApiCallHelpers.SearchAnime("K-ON!");
+        
         Assert.IsNotEmpty(result);
     }
 

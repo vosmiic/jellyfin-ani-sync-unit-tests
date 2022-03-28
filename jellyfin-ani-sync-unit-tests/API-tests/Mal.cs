@@ -6,6 +6,7 @@ using jellyfin_ani_sync;
 using jellyfin_ani_sync.Api;
 using jellyfin_ani_sync.Configuration;
 using jellyfin_ani_sync.Models;
+using jellyfin_ani_sync.Models.Mal;
 using MediaBrowser.Common.Net;
 using MediaBrowser.Controller;
 using Microsoft.AspNetCore.Http;
