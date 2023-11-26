@@ -16,4 +16,12 @@ public class GetUserConfig {
 
         return pluginConfiguration.UserConfig.FirstOrDefault(item => item.UserId == Secrets.userId);
     }
+
+    public static ProviderApiAuth ManuallyGetProviderAuthConfig(ApiName providerName) {
+        XmlSerializer xmlSerializer = new XmlSerializer(typeof(PluginConfiguration));
+        using var fileStream = new FileStream(Secrets.configFileLocation, FileMode.Open);
+        PluginConfiguration pluginConfiguration = (PluginConfiguration)xmlSerializer.Deserialize(fileStream);
+
+        return pluginConfiguration.ProviderApiAuth.FirstOrDefault(item => item.Name == providerName);
+    }
 }
