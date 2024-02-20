@@ -1,5 +1,5 @@
 using System;
-using System.Linq;
+using System.Collections.Generic;
 using System.Net;
 using System.Net.Http;
 using System.Text.Json;
@@ -8,6 +8,7 @@ using System.Threading.Tasks;
 using System.Web.Http;
 using jellyfin_ani_sync.Api;
 using jellyfin_ani_sync.Configuration;
+using jellyfin_ani_sync.Helpers.ProviderHelpers;
 using jellyfin_ani_sync.Models;
 using jellyfin_ani_sync.Models.Mal;
 using MediaBrowser.Controller;
@@ -47,23 +48,11 @@ public class Mal {
         _httpClientFactory = mockFactory.Object;
     }
 
-    [SetUp]
-    public void Setup() {
+    private void Setup(HttpStatusCode responseCode, string responseContent) {
         _loggerFactory = new NullLoggerFactory();
         _serverApplicationHost = new Mock<IServerApplicationHost>();
         _httpContextAccessor = new Mock<IHttpContextAccessor>();
-    }
-
-    [Test]
-    public async Task TestGenericGetUserInformation() {
-        MockHttpCalls(HttpStatusCode.OK, JsonSerializer.Serialize(new User {
-            Id = 1,
-            Name = "name",
-            Location = "location",
-            JoinedAt = DateTime.UtcNow,
-            Picture = "picture"
-        }));
-
+        MockHttpCalls(responseCode, responseContent);
         _malApiCalls = new MalApiCalls(_httpClientFactory, _loggerFactory, _serverApplicationHost.Object, _httpContextAccessor.Object, new UserConfig {
             UserApiAuth = new [] {
                 new UserApiAuth {
@@ -73,6 +62,17 @@ public class Mal {
                 }
             }
         });
+    }
+
+    [Test]
+    public async Task TestGenericGetUserInformation() {
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new User {
+            Id = 1,
+            Name = "name",
+            Location = "location",
+            JoinedAt = DateTime.UtcNow,
+            Picture = "picture"
+        }));
 
         var result = await _malApiCalls.GetUserInformation();
         Assert.IsNotNull(result.Id);
@@ -80,30 +80,38 @@ public class Mal {
 
     [Test]
     public async Task TestGenericSearchAnime() {
-        var result = await _malApiCalls.SearchAnime("K-ON!!", new[] { "id,title,alternative_titles" });
-        var filter = result.FirstOrDefault(anime => anime.Id == 7791);
-        Assert.IsNotNull(filter);
-    }
-
-    [Test]
-    public async Task TestLongQuerySearchAnime() {
-        var result = await _malApiCalls.SearchAnime("Kono Subarashii Sekai ni Shukufuku wo! 2: Kono Subarashii Geijutsu ni Shukufuku wo!", new[] { "id" });
-        var filter = result.FirstOrDefault(anime => anime.Id == 34626);
-        Assert.IsNotNull(filter);
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new SearchAnimeResponse {
+            Data = new List<AnimeList> {
+                new()  {
+                    Anime = new Anime {
+                        Id = 1
+                    }
+                }
+            }
+        }));
+        var result = await _malApiCalls.SearchAnime(String.Empty, new[] { String.Empty });
+        Assert.IsTrue(result is { Count: > 0 });
     }
 
     [Test]
     public async Task TestGenericGetAnime() {
-        var result = await _malApiCalls.GetAnime(7791);
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new Anime {
+            Id = 1
+        }));
+        var result = await _malApiCalls.GetAnime(1);
         Assert.IsNotNull(result);
     }
     
-    [Ignore("Destructive")]
     [Test]
     public async Task TestUpdateAnimeStatus() {
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new UpdateAnimeStatusResponse()));
         var makeChange = await _malApiCalls.UpdateAnimeStatus(339, 1, Status.Completed, true);
-        // revert the change
-        await _malApiCalls.UpdateAnimeStatus(339, 13, Status.Completed, false);
         Assert.IsNotNull(makeChange);
     }
+
+    [Test]
+    [TestCase("The Melancholy of Haruhi Suzumiya", "TheMelancholyofHaruhiSuzumiya")]
+    [TestCase("Kono Subarashii Sekai ni Shukufuku wo! 2: Kono Subarashii Geijutsu ni Shukufuku wo! ", "KonoSubarashiiSekainiShukufukuwo!2:KonoSubarashiiGeijutsuniShuku")]
+    public void TruncateStringAndRemoveSpaces(string input, string expected) =>
+        Assert.IsTrue(MalHelper.TruncateQuery(input) == expected);
 }
