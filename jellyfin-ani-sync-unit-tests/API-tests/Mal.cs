@@ -27,32 +27,11 @@ public class Mal {
     private Mock<IHttpContextAccessor> _httpContextAccessor;
     private IHttpClientFactory _httpClientFactory;
 
-    private class DelegatingHandlerStub : DelegatingHandler {
-        private readonly Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> _handlerFunc;
-        public DelegatingHandlerStub(Func<HttpRequestMessage, CancellationToken, Task<HttpResponseMessage>> handlerFunc) {
-            _handlerFunc = handlerFunc;
-        }
-        protected override Task<HttpResponseMessage> SendAsync(HttpRequestMessage request, CancellationToken cancellationToken) {
-            return _handlerFunc(request, cancellationToken);
-        }
-    }
-
-    private void MockHttpCalls(HttpStatusCode responseCode, string responseContent) {
-        var mockFactory = new Mock<IHttpClientFactory>();
-        var clientHandlerStub = new DelegatingHandlerStub((request, _) => {
-            request.SetConfiguration(new HttpConfiguration());
-            return Task.FromResult(new HttpResponseMessage(responseCode) { RequestMessage = request, Content = new StringContent(responseContent) });
-        });
-        var client = new HttpClient(clientHandlerStub);
-        mockFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(client);
-        _httpClientFactory = mockFactory.Object;
-    }
-
     private void Setup(HttpStatusCode responseCode, string responseContent) {
         _loggerFactory = new NullLoggerFactory();
         _serverApplicationHost = new Mock<IServerApplicationHost>();
         _httpContextAccessor = new Mock<IHttpContextAccessor>();
-        MockHttpCalls(responseCode, responseContent);
+        Helpers.MockHttpCalls(responseCode, responseContent, ref _httpClientFactory);
         _malApiCalls = new MalApiCalls(_httpClientFactory, _loggerFactory, _serverApplicationHost.Object, _httpContextAccessor.Object, new UserConfig {
             UserApiAuth = new [] {
                 new UserApiAuth {
