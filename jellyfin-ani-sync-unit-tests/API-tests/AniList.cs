@@ -1,47 +1,74 @@
+using System;
+using System.Collections.Generic;
+using System.Net;
 using System.Net.Http;
 using System.Threading.Tasks;
 using jellyfin_ani_sync.Api.Anilist;
+using jellyfin_ani_sync.Configuration;
 using jellyfin_ani_sync.Models;
 using MediaBrowser.Controller;
 using Microsoft.AspNetCore.Http;
+using Microsoft.Extensions.Logging;
 using Microsoft.Extensions.Logging.Abstractions;
 using Moq;
 using NUnit.Framework;
+using JsonSerializer = System.Text.Json.JsonSerializer;
 
 namespace jellyfin_ani_sync_unit_tests.API_tests; 
 
 public class AniList {
     private AniListApiCalls _aniListApiCalls;
+    private ILoggerFactory _loggerFactory;
+    private Mock<IServerApplicationHost> _serverApplicationHost;
+    private Mock<IHttpContextAccessor> _httpContextAccessor;
+    private IHttpClientFactory _httpClientFactory;
 
-    [SetUp]
-    public void Setup() {
-        var mockFactory = new Mock<IHttpClientFactory>();
-        var client = new HttpClient();
-        mockFactory.Setup(_ => _.CreateClient(It.IsAny<string>())).Returns(client);
-        IHttpClientFactory factory = mockFactory.Object;
-
-        var mockLoggerFactory = new NullLoggerFactory();
-        var mockServerApplicationHost = new Mock<IServerApplicationHost>();
-        var mockHttpContextAccessor = new Mock<IHttpContextAccessor>();
-        _aniListApiCalls = new AniListApiCalls(factory, mockLoggerFactory, mockServerApplicationHost.Object, mockHttpContextAccessor.Object, GetUserConfig.ManuallyGetUserConfig());
+    private void Setup(HttpStatusCode responseCode, string responseContent) {
+        _loggerFactory = new NullLoggerFactory();
+        _serverApplicationHost = new Mock<IServerApplicationHost>();
+        _httpContextAccessor = new Mock<IHttpContextAccessor>();
+        Helpers.MockHttpCalls(responseCode, responseContent, ref _httpClientFactory);
+        _aniListApiCalls = new AniListApiCalls(_httpClientFactory, _loggerFactory, _serverApplicationHost.Object, _httpContextAccessor.Object, new UserConfig {
+            UserApiAuth = new [] {
+                new UserApiAuth {
+                    AccessToken = "accessToken",
+                    Name = ApiName.AniList,
+                    RefreshToken = "refreshToken"
+                }
+            }
+        });
     }
 
     [Test]
     public async Task TestGenericSearch() {
-        var result = await _aniListApiCalls.SearchAnime("K-ON!");
-        
-        Assert.IsNotNull(result[0].Id);
-    }
-    
-    [Test]
-    public async Task TestGenericLongTitleSearch() {
-        var result = await _aniListApiCalls.SearchAnime("Kono Subarashii Sekai ni Shukufuku wo! 2: Kono Subarashii Geijutsu ni Shukufuku wo!");
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new AniListSearch.AniListSearchMedia {
+            Data = new AniListSearch.AniListSearchData {
+                Page = new AniListSearch.Page {
+                    Media = new List<AniListSearch.Media> {
+                        new()  {
+                            Id = 1
+                        }
+                    },
+                    PageInfo = new AniListSearch.PageInfo {
+                        HasNextPage = false
+                    }
+                }
+            }
+        }));
+        var result = await _aniListApiCalls.SearchAnime(String.Empty);
         
         Assert.IsNotNull(result[0].Id);
     }
 
     [Test]
     public async Task TestGettingCurrentUser() {
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new AniListViewer.AniListGetViewer {
+            Data = new AniListViewer.AniListViewerData {
+                Viewer = new AniListViewer.Viewer {
+                    Id = 1
+                }
+            }
+        }));
         var result = await _aniListApiCalls.GetCurrentUser();
         
         Assert.IsNotNull(result);
@@ -49,21 +76,43 @@ public class AniList {
 
     [Test]
     public async Task TestUpdatingAnime() {
-        var result = await _aniListApiCalls.UpdateAnime(5680, AniListSearch.MediaListStatus.Current, 1);
+        Setup(HttpStatusCode.OK, String.Empty);
+        var result = await _aniListApiCalls.UpdateAnime(1, AniListSearch.MediaListStatus.Current, 1);
         
         Assert.IsTrue(result);
     }
 
     [Test]
     public async Task TestGenericSearchPaging() {
-        var result = await _aniListApiCalls.SearchAnime("life");
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new AniListSearch.AniListSearchMedia {
+            Data = new AniListSearch.AniListSearchData {
+                Page = new AniListSearch.Page {
+                    Media = new List<AniListSearch.Media> {
+                        new()  {
+                            Id = 1
+                        }
+                    },
+                    PageInfo = new AniListSearch.PageInfo {
+                        HasNextPage = true
+                    }
+                }
+            }
+        }));
+        var result = await _aniListApiCalls.SearchAnime(String.Empty);
         
-        Assert.IsTrue(result.Count > AniListApiCalls.PageSize);
+        Assert.IsTrue(result.Count == 10);
     }
 
     [Test]
     public async Task TestGetAnime() {
-        var result = await _aniListApiCalls.GetAnime(5680);
+        Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new AniListGet.AniListGetMedia {
+            Data = new AniListGet.AniListGetData {
+                Media = new AniListSearch.Media {
+                    Id = 1
+                }
+            }
+        }));
+        var result = await _aniListApiCalls.GetAnime(1);
 
         Assert.IsNotNull(result.Id);
     }
