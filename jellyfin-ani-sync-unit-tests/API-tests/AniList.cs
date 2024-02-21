@@ -77,7 +77,12 @@ public class AniList {
     [Test]
     public async Task TestUpdatingAnime() {
         Setup(HttpStatusCode.OK, String.Empty);
-        var result = await _aniListApiCalls.UpdateAnime(1, AniListSearch.MediaListStatus.Current, 1);
+        var result = await _aniListApiCalls.UpdateAnime(1,
+            AniListSearch.MediaListStatus.Current,
+            1,
+            numberOfTimesRewatched: 1,
+            startDate: DateTime.UtcNow - TimeSpan.FromHours(1),
+            endDate: DateTime.UtcNow);
         
         Assert.IsTrue(result);
     }

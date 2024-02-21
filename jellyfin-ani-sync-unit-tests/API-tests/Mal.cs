@@ -84,7 +84,13 @@ public class Mal {
     [Test]
     public async Task TestUpdateAnimeStatus() {
         Setup(HttpStatusCode.OK, JsonSerializer.Serialize(new UpdateAnimeStatusResponse()));
-        var makeChange = await _malApiCalls.UpdateAnimeStatus(339, 1, Status.Completed, true);
+        var makeChange = await _malApiCalls.UpdateAnimeStatus(339,
+            1,
+            Status.Completed,
+            isRewatching: true,
+            numberOfTimesRewatched: 1,
+            startDate: DateTime.UtcNow - TimeSpan.FromHours(1),
+            endDate: DateTime.UtcNow);
         Assert.IsNotNull(makeChange);
     }
 

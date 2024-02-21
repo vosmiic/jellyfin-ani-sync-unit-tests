@@ -121,7 +121,13 @@ public class Kitsu {
                 }
             }
         }));
-        var result = await _kitsuApiCalls.UpdateAnimeStatus(1, 1, KitsuUpdate.Status.current);
+        var result = await _kitsuApiCalls.UpdateAnimeStatus(1,
+            1,
+            KitsuUpdate.Status.current,
+            isRewatching: true,
+            numberOfTimesRewatched: 1,
+            startDate: DateTime.UtcNow - TimeSpan.FromHours(1),
+            endDate: DateTime.UtcNow);
         
         Assert.IsTrue(result);
     }
