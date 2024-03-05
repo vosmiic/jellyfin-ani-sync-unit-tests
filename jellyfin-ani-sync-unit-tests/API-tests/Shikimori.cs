@@ -36,7 +36,8 @@ public class Shikimori {
                     Name = ApiName.Shikimori,
                     RefreshToken = "refreshToken"
                 }
-            }
+            },
+            KeyPairs = new List<KeyPairs>()
         });
     }
 
@@ -61,12 +62,18 @@ public class Shikimori {
     public async Task TestGenericSearch() {
         Setup(new List<Helpers.HttpCall> {
             new () {
-                RequestMethod = HttpMethod.Get,
-                RequestUrlMatch = url => url.EndsWith("/animes"),
+                RequestMethod = HttpMethod.Post,
+                RequestUrlMatch = url => url.EndsWith("/graphql"),
                 ResponseCode = HttpStatusCode.OK,
-                ResponseContent = JsonSerializer.Serialize(new List<ShikimoriMedia> {
-                    new () {
-                        Id = 1
+                ResponseContent = JsonSerializer.Serialize(new ShikimoriApiCalls.GraphqlResponse<Dictionary<string, List<ShikimoriAnime>>> {
+                    Data = new Dictionary<string, List<ShikimoriAnime>> {
+                        {
+                            "animes", new List<ShikimoriAnime> {
+                                new () {
+                                    Id = 1.ToString()
+                                }
+                            }
+                        }
                     }
                 })
             }
@@ -78,40 +85,54 @@ public class Shikimori {
 
     [Test]
     public async Task TestGenericSearchRetrievingMaximumResults() {
-        var shikimoriMediaList = new List<ShikimoriMedia>();
-        for (int i = 0; i < 10; i++) {
-            shikimoriMediaList.Add(new ShikimoriMedia {
-                Id = i
+        var shikimoriMediaList = new List<ShikimoriAnime>();
+        for (int i = 0; i < 50; i++) {
+            shikimoriMediaList.Add(new ShikimoriAnime {
+                Id = i.ToString()
             });
         }
 
         Setup(new List<Helpers.HttpCall> {
             new () {
-                RequestMethod = HttpMethod.Get,
-                RequestUrlMatch = url => url.EndsWith("animes"),
+                RequestMethod = HttpMethod.Post,
+                RequestUrlMatch = url => url.EndsWith("/graphql"),
                 ResponseCode = HttpStatusCode.OK,
-                ResponseContent = JsonSerializer.Serialize(shikimoriMediaList)
+                ResponseContent = JsonSerializer.Serialize(new ShikimoriApiCalls.GraphqlResponse<Dictionary<string, List<ShikimoriAnime>>> {
+                    Data = new Dictionary<string, List<ShikimoriAnime>> {
+                        {
+                            "animes", shikimoriMediaList
+                        }
+                    }
+                })
             }
         });
 
         var result = await _shikimoriApiCalls.SearchAnime(String.Empty);
 
-        Assert.IsTrue(result?.Count == 100);
+        Assert.IsTrue(result?.Count == 450);
     }
 
     [Test]
     public async Task TestGetAnime() {
         Setup(new List<Helpers.HttpCall> {
             new () {
-                RequestMethod = HttpMethod.Get,
-                RequestUrlMatch = url => url.Contains("/animes/"),
+                RequestMethod = HttpMethod.Post,
+                RequestUrlMatch = url => url.EndsWith("/graphql"),
                 ResponseCode = HttpStatusCode.OK,
-                ResponseContent = JsonSerializer.Serialize(new ShikimoriMedia {
-                    Id = 1
+                ResponseContent = JsonSerializer.Serialize(new ShikimoriApiCalls.GraphqlResponse<Dictionary<string, List<ShikimoriAnime>>> {
+                    Data = new Dictionary<string, List<ShikimoriAnime>> {
+                        {
+                            "animes", new List<ShikimoriAnime> {
+                                new () {
+                                    Id = 1.ToString()
+                                }
+                            }
+                        }
+                    }
                 })
             }
         });
-        var result = await _shikimoriApiCalls.GetAnime(1);
+        var result = await _shikimoriApiCalls.GetAnime(1.ToString());
 
         Assert.IsNotNull(result);
     }
@@ -120,15 +141,23 @@ public class Shikimori {
     public async Task TestGetRelatedAnime() {
         Setup(new List<Helpers.HttpCall> {
             new () {
-                RequestMethod = HttpMethod.Get,
-                RequestUrlMatch = url => url.EndsWith("/related"),
+                RequestMethod = HttpMethod.Post,
+                RequestUrlMatch = url => url.EndsWith("/graphql"),
                 ResponseCode = HttpStatusCode.OK,
-                ResponseContent = JsonSerializer.Serialize(new List<ShikimoriRelated> {
-                    new ()
+                ResponseContent = JsonSerializer.Serialize(new ShikimoriApiCalls.GraphqlResponse<Dictionary<string, List<ShikimoriAnime>>> {
+                    Data = new Dictionary<string, List<ShikimoriAnime>> {
+                        {
+                            "animes", new List<ShikimoriAnime> {
+                                new () {
+                                    Id = 1.ToString()
+                                }
+                            }
+                        }
+                    }
                 })
             }
         });
-        var result = await _shikimoriApiCalls.GetRelatedAnime(1);
+        var result = await _shikimoriApiCalls.GetAnime(1.ToString(), getRelated: true);
 
         Assert.IsNotNull(result);
     }
@@ -150,18 +179,18 @@ public class Shikimori {
                 ResponseCode = HttpStatusCode.OK,
                 ResponseContent = JsonSerializer.Serialize(new List<ShikimoriUpdate.UserRate> {
                     new () {
-                        Id = 1
+                        AnimeId = 1.ToString()
                     }
                 })
             },
             new () {
-                RequestMethod = HttpMethod.Patch,
+                RequestMethod = HttpMethod.Post,
                 RequestUrlMatch = url => url.EndsWith("/user_rates"),
                 ResponseCode = HttpStatusCode.OK,
                 ResponseContent = String.Empty
             }
         });
-        var result = await _shikimoriApiCalls.UpdateAnime(1, ShikimoriUpdate.UpdateStatus.watching, 1, 1);
+        var result = await _shikimoriApiCalls.UpdateAnime(1.ToString(), ShikimoriUserRate.StatusEnum.watching, 1, 1);
 
         Assert.IsTrue(result);
     }
@@ -178,12 +207,18 @@ public class Shikimori {
                 })
             },
             new () {
-                RequestMethod = HttpMethod.Get,
-                RequestUrlMatch = url => url.EndsWith("/user_rates"),
+                RequestMethod = HttpMethod.Post,
+                RequestUrlMatch = url => url.EndsWith("/graphql"),
                 ResponseCode = HttpStatusCode.OK,
-                ResponseContent = JsonSerializer.Serialize(new List<ShikimoriUpdate.UserRate> {
-                    new () {
-                        Id = 1
+                ResponseContent = JsonSerializer.Serialize(new ShikimoriApiCalls.GraphqlResponse<Dictionary<string, List<ShikimoriAnime>>> {
+                    Data = new Dictionary<string, List<ShikimoriAnime>> {
+                        {
+                            "animes", new List<ShikimoriAnime> {
+                                new () {
+                                    Id = 1.ToString()
+                                }
+                            }
+                        }
                     }
                 })
             }
